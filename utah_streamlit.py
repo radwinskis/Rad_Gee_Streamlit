@@ -201,3 +201,7 @@ elif dataset_options=='Landsat 8 Vegetation False Color':
     Map.addLayer(image_grab(landsat_N, N_img_date), ls_true_vis, 'northern swath image')
     Map.addLayer(image_grab(landsat_S, S_img_date), ls_true_vis, 'southern swath image')
     Map.to_streamlit(height=800)
+
+st.write('Contact: markradwin@gmail.com')
+st.write('Affiliation: University of Utah - Geology & Geophysics Dept.')
+st.write('GitHub Repo: https://github.com/radwinskis/Rad_Gee_Streamlit ')
