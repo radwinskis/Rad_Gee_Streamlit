@@ -9,7 +9,8 @@ import datetime
 #If app is a contained app, wrap the app in a function called app():
 
 st.set_page_config(layout="wide")
-st.title("Testing My GEE Rad App Interface")
+st.title("Utah Remote Sensing Interface - Mark Radwin")
+st.write('Made using Google Earth Engine, geemap, Streamlit, and love')
 
 
 geemap.ee_initialize()
