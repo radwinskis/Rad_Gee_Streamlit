@@ -12,7 +12,7 @@ st.set_page_config(layout="wide")
 st.title("Testing My GEE Rad App Interface")
 
 
-ee.Initialize()
+geemap.ee_initialize()
 
 ### Functions ###
 def image_dater(image):
