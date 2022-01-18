@@ -9,8 +9,26 @@ import datetime
 #If app is a contained app, wrap the app in a function called app():
 
 st.set_page_config(layout="wide")
-st.title("Utah Remote Sensing Interface - Mark Radwin")
-st.write('Made using Google Earth Engine, geemap, Streamlit, and love')
+st.title("Utah Remote Sensing Interface")
+st.header('Made by Mark Radwin')
+st.subheader('Made using Google Earth Engine, geemap, Streamlit, and love')
+
+with st.expander("Instructions"):
+    st.write('This web app is designed to be an easy to use interface to explore and \
+        save select satellite imagery from the state of Utah. The data used for this application \
+        is from Google Earth Engine but is acquired by NASA, USGS, and/or ESA. To use the app, \
+        please define any initial dataset parameters such as cloud masking (removes pixels identified as clouds), \
+        processed dataset selection (i.e. true color imagery vs land surface temperature), and the image collection start/end dates.\
+        Then select the region of Utah in which you wish to image using the location dropdown. \
+        Because the Earth observing satellites move in a North-to-South swath, two images from each swath \
+        are used for each display region. Due to this, and undiagnosed errors with Google Earth Engine, you must pick \
+        the dates of each northern and southern swath image displayed to ensure they match. To adjust the contrast of the scene, \
+        you can change the minimum and maximum display value. Raising the max value will darken the scene and \
+        lowering the max will lighten the scene. For Land Surface Temperature (LST), you may choose the actual min and max \
+        temperatures (in C) displayed. After every change the page will load to enact your changes. The map will constantly update \
+        your choices and has interactivity for panning and zooming. To save either the northern or southern image displayed as is, \
+        click the buttons below the map to acquire a link which will open a new tab displaying the image of interest. To save the image \
+        in this new tab, right-click the image and press Save Image As... The color palette used for LST is called thermal and is from https://github.com/gee-community/ee-palettes')
 
 
 geemap.ee_initialize()
@@ -21,11 +39,6 @@ def image_dater(image):
     return image.set({'Date_Filter': date})
 
 def image_grab(img_col, img_selector):
-    new_col = img_col.filter(ee.Filter.eq('Date_Filter', img_selector)) #.filter(ee.Filter.eq('Date_Filter', img_selector))
-    new_col_list = new_col.toList(new_col.size())
-    return ee.Image(new_col_list.get(0))
-
-def image_grab2(img_col, img_selector):
     new_col = img_col.filter(ee.Filter.eq('Date_Filter', img_selector)) #.filter(ee.Filter.eq('Date_Filter', img_selector))
     new_col_list = new_col.toList(new_col.size())
     return ee.Image(new_col_list.get(0))
@@ -69,7 +82,7 @@ st.write('Choose your initial parameters. Note: setting a large date difference/
 st.write('To refresh settings to default, refresh the page using your browser')
 col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
 with col1:
-    cloud_options = st.radio('Cloud Masking?', ['Yes', 'No'], 0, key='clouds')
+    cloud_options = st.radio('Cloud Masking?', ['Yes', 'No'], 1, key='clouds')
 with col2:
     dataset_options = st.selectbox('Dataset Selection', ['Landsat 8 True Color', \
         'Landsat 8 Surface Temperature', 'Landsat 8 Vegetation False Color'], 0, key='dataset')
@@ -166,7 +179,7 @@ with col6:
 if dataset_options=='Landsat 8 True Color':
     col7, col8 = st.columns([2, 2])
     with col7:
-        min = st.slider('Minimum Display Value', min_value=0, max_value=600, value=0, key='min_stretch_value')
+        min = st.slider('Minimum Display Value', min_value=-500, max_value=5000, value=0, key='min_stretch_value')
     with col8:
         max = st.slider('Maximum Display Value (raise for displaying bright objects)', min_value=10000, max_value=60000, value=24000, key='max_stretch_value')    
     Map = geemap.Map(center=(lat, long), zoom=10)
@@ -174,6 +187,8 @@ if dataset_options=='Landsat 8 True Color':
     Map.addLayer(image_grab(landsat_N, N_img_date), ls_true_vis, 'northern swath image')
     Map.addLayer(image_grab(landsat_S, S_img_date), ls_true_vis, 'southern swath image')
     Map.to_streamlit(height=800)
+    url_N = image_grab(landsat_N, N_img_date).getThumbURL({'dimensions':2500, 'format':'png', 'bands':['SR_B4', 'SR_B3', 'SR_B2'], 'min': min, 'max': max, 'gamma': [0.6, 0.6, 0.6]})
+    url_S = image_grab(landsat_S, S_img_date).getThumbURL({'dimensions':2500, 'format':'png', 'bands':['SR_B4', 'SR_B3', 'SR_B2'], 'min': min, 'max': max, 'gamma': [0.6, 0.6, 0.6]})
 elif dataset_options=='Landsat 8 Surface Temperature':
     col7, col8 = st.columns([2, 2])
     with col7:
@@ -190,10 +205,12 @@ elif dataset_options=='Landsat 8 Surface Temperature':
     Map.add_colorbar(colors=thermal, vmin=min, vmax=max, caption = "Surface Temperature (C)", layer_name = 'Surface Temperature')
     #Map.addLayer(N_LST.first(), thermal_vis, 'northern swath image')
     Map.to_streamlit(height=800)
+    url_N = image_grab(N_LST, N_img_date).getThumbURL({'dimensions':2500, 'format':'png', 'bands':['LST'], 'min':min, 'max':max, 'palette':thermal})
+    url_S = image_grab(S_LST, S_img_date).getThumbURL({'dimensions':2500, 'format':'png', 'bands':['LST'], 'min':min, 'max':max, 'palette':thermal})
 elif dataset_options=='Landsat 8 Vegetation False Color':
     col7, col8 = st.columns([2, 2])
     with col7:
-        min = st.slider('Minimum Display Value', min_value=0, max_value=600, value=0, key='min_stretch_value')
+        min = st.slider('Minimum Display Value', min_value=-500, max_value=5000, value=0, key='min_stretch_value')
     with col8:
         max = st.slider('Maximum Display Value (raise for displaying bright objects)', min_value=10000, max_value=60000, value=24000, key='max_stretch_value')    
     Map = geemap.Map(center=(lat, long), zoom=10)
@@ -201,7 +218,19 @@ elif dataset_options=='Landsat 8 Vegetation False Color':
     Map.addLayer(image_grab(landsat_N, N_img_date), ls_true_vis, 'northern swath image')
     Map.addLayer(image_grab(landsat_S, S_img_date), ls_true_vis, 'southern swath image')
     Map.to_streamlit(height=800)
+    url_N = image_grab(landsat_N, N_img_date).getThumbURL({'dimensions':2500, 'format':'png', 'bands':['SR_B5', 'SR_B4', 'SR_B3'], 'min': min, 'max': max, 'gamma': [0.6, 0.6, 0.6]})
+    url_S = image_grab(landsat_S, S_img_date).getThumbURL({'dimensions':2500, 'format':'png', 'bands':['SR_B5', 'SR_B4', 'SR_B3'], 'min': min, 'max': max, 'gamma': [0.6, 0.6, 0.6]})
 
-st.write('Contact: markradwin@gmail.com')
-st.write('Affiliation: University of Utah - Geology & Geophysics Dept.')
-st.write('GitHub Repo: https://github.com/radwinskis/Rad_Gee_Streamlit ')
+#url = image_grab(landsat_N, N_img_date).getThumbURL({'dimensions':2500, 'format':'jpg', 'bands':['SR_B4', 'SR_B3', 'SR_B2'], 'min': min, 'max': max, 'gamma': [0.6, 0.6, 0.6]})
+download_N = st.button(label='Link to save northern image', help='Click button to show link to view and save a png image with a max dimension of 2000px')
+if download_N:
+    st.write(url_N)
+download_S = st.button(label='Link to save southern image', help='Click button to show link to view and save a png image with a max dimension of 2000px')
+if download_S:
+    st.write(url_S)
+#st.write(url_N)
+#st.write(url_N)
+
+st.write('*Contact: markradwin@gmail.com*')
+st.write('*Affiliation: University of Utah - Geology & Geophysics Dept.*')
+st.write('*GitHub Repo: https://github.com/radwinskis/Rad_Gee_Streamlit *')
