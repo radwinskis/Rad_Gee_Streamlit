@@ -188,6 +188,7 @@ sn_date_value = ee.Date(sentinel_N.aggregate_array('Date_Filter').getInfo()[-1])
 
 sn_dates2 = sentinel_S.aggregate_array('Date_Filter').getInfo() #List of dates
 sn_date_value2 = ee.Date(sentinel_S.aggregate_array('Date_Filter').getInfo()[-1]).format('YYYY-MM-dd') #Most recent date
+#Link for sn tile explorer https://eatlas.org.au/data/uuid/f7468d15-12be-4e3f-a246-b2882a324f59
 
 N_scaled_bands = landsat_N.map(temperature_bands)
 S_scaled_bands = landsat_S.map(temperature_bands)
@@ -267,7 +268,7 @@ elif dataset_options=='Sentinel 2 True Color':
         min = st.slider('Minimum Display Value', min_value=-500, max_value=1000, value=0, key='min_stretch_value')
     with col8:
         max = st.slider('Maximum Display Value (raise for displaying bright objects)', min_value=2000, max_value=10000, value=4000, key='max_stretch_value')    
-    sn_true_vis = {'bands': ['B4', 'B3', 'B2'], 'min': 0, 'max': 4000} #params for original bands
+    sn_true_vis = {'bands': ['B4', 'B3', 'B2'], 'min': min, 'max': max} #params for original bands
     Map = geemap.Map(center=(lat, long), zoom=10)
     Map.addLayer(image_grab(sentinel_N, N_img_date), sn_true_vis, 'northern swath image')
     Map.addLayer(image_grab(sentinel_S, S_img_date), sn_true_vis, 'southern swath image')
