@@ -75,7 +75,10 @@ def landsat_LST(image):
         'downwelling': image.select('downwelling')})
     return LST.rename('LST') #.set({'Date_Filter': date}) #Outputs temperature in C
 
-
+def MaskCloudsS2(image):
+  SCL = image.select('SCL')
+  CloudMask = SCL.neq(9)
+  return image.updateMask(CloudMask)
 
 ### Application Body ###
 st.write('Choose your initial parameters. Note: setting a large date difference/collection will cause slower load times')
@@ -84,7 +87,7 @@ col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
 with col1:
     cloud_options = st.radio('Cloud Masking?', ['Yes', 'No'], 1, key='clouds')
 with col2:
-    dataset_options = st.selectbox('Dataset Selection', ['Landsat 8 True Color', \
+    dataset_options = st.selectbox('Dataset Selection', ['Landsat 8 True Color', 'Sentinel 2 True Color',\
         'Landsat 8 Surface Temperature', 'Landsat 8 Vegetation False Color'], 0, key='dataset')
 with col3:
     yr_ago = datetime.datetime.now() - datetime.timedelta(days=365)
@@ -104,37 +107,48 @@ if location=='Salt Lake Valley':
     path = 38
     row_N = 31
     row_S = 32
+    tile_N = '12TVL'
+    tile_S = '12TVK'
 elif location=='Bonneville Basin':
     lat = 40.9353
     long = -113.4461
     path = 39
     row_N = 31
     row_S = 32
+    tile_N = '12TTL'
+    tile_S = '12TTK'
 elif location=='Delta - St George':
     lat = 38.6705
     long = -112.3404
     path = 38
     row_N = 33
     row_S = 34
+    tile_N = '12STH'
+    tile_S = '12STG'
 elif location=='Moab area':
     lat = 38.5726
     long = -109.5508
     path = 36
     row_N = 33
     row_S = 34
+    tile_N = '12SXH'
+    tile_S = '12SXG'
 elif location=='Price - Capitol Reef - Grand Staircase':
     lat = 38.0740
     long = -111.1142
     path = 37
     row_N = 33
     row_S = 34
+    tile_N = '12SVH'
+    tile_S = '12SVG'
 elif location=='Uintas - Price':
     lat = 40.7306
     long = -110.5163
     path = 37
     row_N = 31
     row_S = 32
-
+    tile_N = '12TWL'
+    tile_S = '12TWK'
 
 
 if cloud_options=='Yes':
@@ -143,6 +157,13 @@ if cloud_options=='Yes':
 
     landsat_S = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2").filterDate(ee.Date(str(start_date)).format('YYYY-MM-dd'), ee.Date(str(end_date)).format('YYYY-MM-dd')) \
     .filter(ee.Filter.And(ee.Filter.eq('WRS_PATH', path), ee.Filter.eq('WRS_ROW', row_S))).map(image_dater).map(maskL8clouds)
+
+    sentinel_N = ee.ImageCollection("COPERNICUS/S2_SR").filter(ee.Filter.inList('MGRS_TILE', [tile_N])).filterDate(ee.Date(str(start_date)).format('YYYY-MM-dd'), ee.Date(str(end_date)).format('YYYY-MM-dd')).map(image_dater) \
+    .select(['B8', 'B5', 'B4', 'B3', 'B2', 'QA60', 'SCL']).filter(ee.Filter.lte('NODATA_PIXEL_PERCENTAGE', 10)).map(MaskCloudsS2)
+
+    sentinel_S = ee.ImageCollection("COPERNICUS/S2_SR").filter(ee.Filter.inList('MGRS_TILE', [tile_S])).filterDate(ee.Date(str(start_date)).format('YYYY-MM-dd'), ee.Date(str(end_date)).format('YYYY-MM-dd')).map(image_dater) \
+    .select(['B8', 'B5', 'B4', 'B3', 'B2', 'QA60', 'SCL']).filter(ee.Filter.lte('NODATA_PIXEL_PERCENTAGE', 10)).map(MaskCloudsS2)
+
 else:
     landsat_N = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2").filterDate(ee.Date(str(start_date)).format('YYYY-MM-dd'), ee.Date(str(end_date)).format('YYYY-MM-dd')) \
     .filter(ee.Filter.And(ee.Filter.eq('WRS_PATH', path), ee.Filter.eq('WRS_ROW', row_N))).map(image_dater)
@@ -150,11 +171,23 @@ else:
     landsat_S = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2").filterDate(ee.Date(str(start_date)).format('YYYY-MM-dd'), ee.Date(str(end_date)).format('YYYY-MM-dd')) \
     .filter(ee.Filter.And(ee.Filter.eq('WRS_PATH', path), ee.Filter.eq('WRS_ROW', row_S))).map(image_dater)
 
+    sentinel_N = ee.ImageCollection("COPERNICUS/S2_SR").filter(ee.Filter.inList('MGRS_TILE', [tile_N])).filterDate(ee.Date(str(start_date)).format('YYYY-MM-dd'), ee.Date(str(end_date)).format('YYYY-MM-dd')).map(image_dater) \
+    .select(['B8', 'B5', 'B4', 'B3', 'B2', 'QA60', 'SCL']).filter(ee.Filter.lte('NODATA_PIXEL_PERCENTAGE', 10))
+
+    sentinel_S = ee.ImageCollection("COPERNICUS/S2_SR").filter(ee.Filter.inList('MGRS_TILE', [tile_S])).filterDate(ee.Date(str(start_date)).format('YYYY-MM-dd'), ee.Date(str(end_date)).format('YYYY-MM-dd')).map(image_dater) \
+    .select(['B8', 'B5', 'B4', 'B3', 'B2', 'QA60', 'SCL']).filter(ee.Filter.lte('NODATA_PIXEL_PERCENTAGE', 10))
+
 ls_dates = landsat_N.aggregate_array('Date_Filter').getInfo() #List of dates
 ls_date_value = ee.Date(landsat_N.aggregate_array('Date_Filter').getInfo()[-1]).format('YYYY-MM-dd') #Most recent date
 
 ls_dates2 = landsat_S.aggregate_array('Date_Filter').getInfo() #List of dates
 ls_date_value2 = ee.Date(landsat_S.aggregate_array('Date_Filter').getInfo()[-1]).format('YYYY-MM-dd') #Most recent date
+
+sn_dates = sentinel_N.aggregate_array('Date_Filter').getInfo() #List of dates
+sn_date_value = ee.Date(sentinel_N.aggregate_array('Date_Filter').getInfo()[-1]).format('YYYY-MM-dd') #Most recent date
+
+sn_dates2 = sentinel_S.aggregate_array('Date_Filter').getInfo() #List of dates
+sn_date_value2 = ee.Date(sentinel_S.aggregate_array('Date_Filter').getInfo()[-1]).format('YYYY-MM-dd') #Most recent date
 
 N_scaled_bands = landsat_N.map(temperature_bands)
 S_scaled_bands = landsat_S.map(temperature_bands)
@@ -168,13 +201,21 @@ S_LST = landsat_S.combine(S_LST_col).map(image_dater)
 #st.write(landsat_N.first().getInfo().get('properties').get('Date_Filter'))
 #st.write(landsat_N.getInfo())
 
-
 st.write("Choose dates of each north and south image of the swath (this is because they don't always match by default)")
-col5, col6 = st.columns([2, 2])
-with col5:
-    N_img_date = st.selectbox('North Image Date', ls_dates, len(ls_dates)-1, key="N_img_date")
-with col6:
-    S_img_date = st.selectbox('South Image Date', ls_dates2, len(ls_dates2)-1, key="S_img_date")
+#col5, col6 = st.columns([2, 2])
+#if dataset_options=='Landsat 8 True Color':
+if 'Landsat 8' in dataset_options:
+    col5, col6 = st.columns([2, 2])
+    with col5:
+        N_img_date = st.selectbox('North Image Date', ls_dates, len(ls_dates)-1, key="N_img_date")
+    with col6:
+        S_img_date = st.selectbox('South Image Date', ls_dates2, len(ls_dates2)-1, key="S_img_date")
+else:
+    col5, col6 = st.columns([2, 2])
+    with col5:
+        N_img_date = st.selectbox('North Image Date', sn_dates, len(sn_dates)-1, key="N_img_date2")
+    with col6:
+        S_img_date = st.selectbox('South Image Date', sn_dates2, len(sn_dates2)-1, key="S_img_date2")
 
 if dataset_options=='Landsat 8 True Color':
     col7, col8 = st.columns([2, 2])
@@ -220,6 +261,20 @@ elif dataset_options=='Landsat 8 Vegetation False Color':
     Map.to_streamlit(height=800)
     url_N = image_grab(landsat_N, N_img_date).getThumbURL({'dimensions':2500, 'format':'png', 'bands':['SR_B5', 'SR_B4', 'SR_B3'], 'min': min, 'max': max, 'gamma': [0.6, 0.6, 0.6]})
     url_S = image_grab(landsat_S, S_img_date).getThumbURL({'dimensions':2500, 'format':'png', 'bands':['SR_B5', 'SR_B4', 'SR_B3'], 'min': min, 'max': max, 'gamma': [0.6, 0.6, 0.6]})
+elif dataset_options=='Sentinel 2 True Color':
+    col7, col8 = st.columns([2, 2])
+    with col7:
+        min = st.slider('Minimum Display Value', min_value=-500, max_value=1000, value=0, key='min_stretch_value')
+    with col8:
+        max = st.slider('Maximum Display Value (raise for displaying bright objects)', min_value=2000, max_value=10000, value=4000, key='max_stretch_value')    
+    sn_true_vis = {'bands': ['B4', 'B3', 'B2'], 'min': 0, 'max': 4000} #params for original bands
+    Map = geemap.Map(center=(lat, long), zoom=10)
+    Map.addLayer(image_grab(sentinel_N, N_img_date), sn_true_vis, 'northern swath image')
+    Map.addLayer(image_grab(sentinel_S, S_img_date), sn_true_vis, 'southern swath image')
+    Map.to_streamlit(height=800)
+    url_N = image_grab(sentinel_N, N_img_date).getThumbURL({'dimensions':2500, 'format':'png', 'bands':['B4', 'B3', 'B2'], 'min': min, 'max': max})
+    url_S = image_grab(sentinel_S, S_img_date).getThumbURL({'dimensions':2500, 'format':'png', 'bands':['B4', 'B3', 'B2'], 'min': min, 'max': max})
+
 
 #url = image_grab(landsat_N, N_img_date).getThumbURL({'dimensions':2500, 'format':'jpg', 'bands':['SR_B4', 'SR_B3', 'SR_B2'], 'min': min, 'max': max, 'gamma': [0.6, 0.6, 0.6]})
 download_N = st.button(label='Link to save northern image', help='Click button to show link to view and save a png image with a max dimension of 2000px')
