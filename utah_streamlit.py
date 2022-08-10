@@ -9,15 +9,16 @@ import datetime
 #If app is a contained app, wrap the app in a function called app():
 
 st.set_page_config(layout="wide")
-st.title("Utah Remote Sensing Interface")
+st.title("Utah Remote Sensing Interface | NASA/USGS Landsat 8 OLI, Landsat 9 OLI-2, and ESA Sentinel-2 MSI Imagery")
+st.header('Choose from true color, vegetation false color, or land surface temperature datasets')
 st.header('Made by Mark Radwin')
-st.subheader('Made using Google Earth Engine, geemap, Streamlit, and love')
+st.subheader('Code written with Google Earth Engine, geemap, Streamlit, and love')
 
 with st.expander("Instructions"):
-    st.write('This web app is designed to be an easy to use interface to explore and \
+    st.markdown('This web app is designed to be an easy to use interface to explore and \
         save select satellite imagery from the state of Utah. The data used for this application \
-        is from Google Earth Engine but is acquired by NASA, USGS, and/or ESA. To use the app, \
-        please define any initial dataset parameters such as cloud masking (removes pixels identified as clouds), \
+        is from Google Earth Engine but is acquired by NASA, USGS, and/or ESA. \
+        To use the app, please define any initial dataset parameters such as cloud masking (removes pixels identified as clouds), \
         processed dataset selection (i.e. true color imagery vs land surface temperature), and the image collection start/end dates.\
         Then select the region of Utah in which you wish to image using the location dropdown. \
         Because the Earth observing satellites move in a North-to-South swath, two images from each swath \
@@ -61,7 +62,8 @@ def temperature_bands(img):
     scale2_bands = img.select(scale2).multiply(0.001).rename(scale2_names) #Scaled to new L8 collection
     return scale1_bands.addBands(scale2_bands)
 def landsat_LST(image):
-    #date = ee.Number(image.date().format('YYYY-MM-dd'))
+    # Based on Sekertekin, A., & Bonafoni, S. (2020) https://doi.org/10.3390/rs12020294
+    
     k1 = 774.89
     k2 = 1321.08
     LST = image.expression(
@@ -87,8 +89,8 @@ col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
 with col1:
     cloud_options = st.radio('Cloud Masking?', ['Yes', 'No'], 1, key='clouds')
 with col2:
-    dataset_options = st.selectbox('Dataset Selection', ['Landsat 8 True Color', 'Sentinel 2 True Color',\
-        'Landsat 8 Surface Temperature', 'Landsat 8 Vegetation False Color'], 0, key='dataset')
+    dataset_options = st.selectbox('Dataset Selection', ['Landsat 8 & 9 True Color', 'Sentinel 2 True Color',\
+        'Landsat 8 & 9 Surface Temperature', 'Landsat 8 & 9 Vegetation False Color'], 0, key='dataset')
 with col3:
     yr_ago = datetime.datetime.now() - datetime.timedelta(days=365)
     start_date = st.date_input('Collection Start Date (optional)', yr_ago)
@@ -152,10 +154,10 @@ elif location=='Uintas - Price':
 
 
 if cloud_options=='Yes':
-    landsat_N = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2").filterDate(ee.Date(str(start_date)).format('YYYY-MM-dd'), ee.Date(str(end_date)).format('YYYY-MM-dd')) \
+    landsat_N = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2").merge(ee.ImageCollection("LANDSAT/LC09/C02/T1_L2")).filterDate(ee.Date(str(start_date)).format('YYYY-MM-dd'), ee.Date(str(end_date)).format('YYYY-MM-dd')) \
     .filter(ee.Filter.And(ee.Filter.eq('WRS_PATH', path), ee.Filter.eq('WRS_ROW', row_N))).map(image_dater).map(maskL8clouds)
 
-    landsat_S = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2").filterDate(ee.Date(str(start_date)).format('YYYY-MM-dd'), ee.Date(str(end_date)).format('YYYY-MM-dd')) \
+    landsat_S = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2").merge(ee.ImageCollection("LANDSAT/LC09/C02/T1_L2")).filterDate(ee.Date(str(start_date)).format('YYYY-MM-dd'), ee.Date(str(end_date)).format('YYYY-MM-dd')) \
     .filter(ee.Filter.And(ee.Filter.eq('WRS_PATH', path), ee.Filter.eq('WRS_ROW', row_S))).map(image_dater).map(maskL8clouds)
 
     sentinel_N = ee.ImageCollection("COPERNICUS/S2_SR").filter(ee.Filter.inList('MGRS_TILE', [tile_N])).filterDate(ee.Date(str(start_date)).format('YYYY-MM-dd'), ee.Date(str(end_date)).format('YYYY-MM-dd')).map(image_dater) \
@@ -165,10 +167,10 @@ if cloud_options=='Yes':
     .select(['B8', 'B5', 'B4', 'B3', 'B2', 'QA60', 'SCL']).filter(ee.Filter.lte('NODATA_PIXEL_PERCENTAGE', 10)).map(MaskCloudsS2)
 
 else:
-    landsat_N = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2").filterDate(ee.Date(str(start_date)).format('YYYY-MM-dd'), ee.Date(str(end_date)).format('YYYY-MM-dd')) \
+    landsat_N = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2").merge(ee.ImageCollection("LANDSAT/LC09/C02/T1_L2")).filterDate(ee.Date(str(start_date)).format('YYYY-MM-dd'), ee.Date(str(end_date)).format('YYYY-MM-dd')) \
     .filter(ee.Filter.And(ee.Filter.eq('WRS_PATH', path), ee.Filter.eq('WRS_ROW', row_N))).map(image_dater)
 
-    landsat_S = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2").filterDate(ee.Date(str(start_date)).format('YYYY-MM-dd'), ee.Date(str(end_date)).format('YYYY-MM-dd')) \
+    landsat_S = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2").merge(ee.ImageCollection("LANDSAT/LC09/C02/T1_L2")).filterDate(ee.Date(str(start_date)).format('YYYY-MM-dd'), ee.Date(str(end_date)).format('YYYY-MM-dd')) \
     .filter(ee.Filter.And(ee.Filter.eq('WRS_PATH', path), ee.Filter.eq('WRS_ROW', row_S))).map(image_dater)
 
     sentinel_N = ee.ImageCollection("COPERNICUS/S2_SR").filter(ee.Filter.inList('MGRS_TILE', [tile_N])).filterDate(ee.Date(str(start_date)).format('YYYY-MM-dd'), ee.Date(str(end_date)).format('YYYY-MM-dd')).map(image_dater) \
@@ -177,10 +179,10 @@ else:
     sentinel_S = ee.ImageCollection("COPERNICUS/S2_SR").filter(ee.Filter.inList('MGRS_TILE', [tile_S])).filterDate(ee.Date(str(start_date)).format('YYYY-MM-dd'), ee.Date(str(end_date)).format('YYYY-MM-dd')).map(image_dater) \
     .select(['B8', 'B5', 'B4', 'B3', 'B2', 'QA60', 'SCL']).filter(ee.Filter.lte('NODATA_PIXEL_PERCENTAGE', 10))
 
-ls_dates = landsat_N.aggregate_array('Date_Filter').getInfo() #List of dates
+ls_dates = sorted(landsat_N.aggregate_array('Date_Filter').getInfo())#List of dates
 ls_date_value = ee.Date(landsat_N.aggregate_array('Date_Filter').getInfo()[-1]).format('YYYY-MM-dd') #Most recent date
 
-ls_dates2 = landsat_S.aggregate_array('Date_Filter').getInfo() #List of dates
+ls_dates2 = sorted(landsat_S.aggregate_array('Date_Filter').getInfo()) #List of dates
 ls_date_value2 = ee.Date(landsat_S.aggregate_array('Date_Filter').getInfo()[-1]).format('YYYY-MM-dd') #Most recent date
 
 sn_dates = sentinel_N.aggregate_array('Date_Filter').getInfo() #List of dates
@@ -218,7 +220,7 @@ else:
     with col6:
         S_img_date = st.selectbox('South Image Date', sn_dates2, len(sn_dates2)-1, key="S_img_date2")
 
-if dataset_options=='Landsat 8 True Color':
+if dataset_options=='Landsat 8 & 9 True Color':
     col7, col8 = st.columns([2, 2])
     with col7:
         min = st.slider('Minimum Display Value', min_value=-500, max_value=5000, value=0, key='min_stretch_value')
@@ -231,12 +233,13 @@ if dataset_options=='Landsat 8 True Color':
     Map.to_streamlit(height=800)
     url_N = image_grab(landsat_N, N_img_date).getThumbURL({'dimensions':2500, 'format':'png', 'bands':['SR_B4', 'SR_B3', 'SR_B2'], 'min': min, 'max': max, 'gamma': [0.6, 0.6, 0.6]})
     url_S = image_grab(landsat_S, S_img_date).getThumbURL({'dimensions':2500, 'format':'png', 'bands':['SR_B4', 'SR_B3', 'SR_B2'], 'min': min, 'max': max, 'gamma': [0.6, 0.6, 0.6]})
-elif dataset_options=='Landsat 8 Surface Temperature':
+    st.write('North image acquired by', image_grab(landsat_N, N_img_date).get('SPACECRAFT_ID').getInfo())
+elif dataset_options=='Landsat 8 & 9 Surface Temperature':
     col7, col8 = st.columns([2, 2])
     with col7:
-        min = st.slider('Minimum Display Temperature (C)', min_value=-30, max_value=8, value=-18, key='min_temp')
+        min = st.slider('Minimum Display Temperature (C)', min_value=-30, max_value=8, value=0, key='min_temp')
     with col8:
-        max = st.slider('Maximum Display Temperature (C)', min_value=9, max_value=48, value=38, key='max_temp')
+        max = st.slider('Maximum Display Temperature (C)', min_value=9, max_value=65, value=50, key='max_temp')
     Map = geemap.Map(center=(lat, long), zoom=10)
     jet = ['#00007F', '#002AFF', '#00D4FF', '#7FFF7F', '#FFD400', '#FF2A00', '#7F0000']
     inferno = ['#000004', '#320A5A', '#781B6C', '#BB3654', '#EC6824', '#FBB41A', '#FCFFA4']
@@ -249,7 +252,8 @@ elif dataset_options=='Landsat 8 Surface Temperature':
     Map.to_streamlit(height=800)
     url_N = image_grab(N_LST, N_img_date).getThumbURL({'dimensions':2500, 'format':'png', 'bands':['LST'], 'min':min, 'max':max, 'palette':thermal})
     url_S = image_grab(S_LST, S_img_date).getThumbURL({'dimensions':2500, 'format':'png', 'bands':['LST'], 'min':min, 'max':max, 'palette':thermal})
-elif dataset_options=='Landsat 8 Vegetation False Color':
+    st.write('North image acquired by', image_grab(N_LST, N_img_date).get('SPACECRAFT_ID').getInfo())
+elif dataset_options=='Landsat 8 & 9 Vegetation False Color':
     col7, col8 = st.columns([2, 2])
     with col7:
         min = st.slider('Minimum Display Value', min_value=-500, max_value=5000, value=0, key='min_stretch_value')
@@ -262,6 +266,7 @@ elif dataset_options=='Landsat 8 Vegetation False Color':
     Map.to_streamlit(height=800)
     url_N = image_grab(landsat_N, N_img_date).getThumbURL({'dimensions':2500, 'format':'png', 'bands':['SR_B5', 'SR_B4', 'SR_B3'], 'min': min, 'max': max, 'gamma': [0.6, 0.6, 0.6]})
     url_S = image_grab(landsat_S, S_img_date).getThumbURL({'dimensions':2500, 'format':'png', 'bands':['SR_B5', 'SR_B4', 'SR_B3'], 'min': min, 'max': max, 'gamma': [0.6, 0.6, 0.6]})
+    st.write('North image acquired by', image_grab(landsat_N, N_img_date).get('SPACECRAFT_ID').getInfo())
 elif dataset_options=='Sentinel 2 True Color':
     col7, col8 = st.columns([2, 2])
     with col7:
