@@ -1,5 +1,6 @@
 import streamlit as st
 import geemap.foliumap as geemap
+import geemap as gm
 # import geemap
 import ee
 #import os
@@ -31,7 +32,7 @@ with st.expander("Instructions and information"):
         See my Github for more details on the code.')
 
 
-geemap.ee_initialize()
+gm.ee_initialize()
 
 ### Application Body ###
 st.write('Choose your initial parameters. Note: setting a large date difference/collection will cause slower load times')
