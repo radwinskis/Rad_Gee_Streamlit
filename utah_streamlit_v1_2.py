@@ -33,6 +33,7 @@ with st.expander("Instructions and information"):
 
 
 gm.ee_initialize()
+# ee.Authenticate()
 
 ### Application Body ###
 st.write('Choose your initial parameters. Note: setting a large date difference/collection will cause slower load times')

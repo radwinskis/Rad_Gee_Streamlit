@@ -1,6 +1,7 @@
 import geemap
 import ee
-ee.Initialize()
+# ee.Initialize()
+geemap.ee_initialize()
 
 class LandsatCollection:
     def __init__(self, start_date=None, end_date=None, tile_row=None, tile_path=None, cloud_percentage_threshold=None, collection=None):
