@@ -6,7 +6,7 @@ import ee
 #import os
 from datetime import date
 import datetime
-from RadGEEToolbox_v1_0_2 import LandsatCollection, Sentinel2Collection
+from RadGEEToolbox_v1_0_1 import LandsatCollection, Sentinel2Collection
 #os.environ["EARTHENGINE_TOKEN"] == st.secrets["EARTHENGINE_TOKEN"]
 #If app is a contained app, wrap the app in a function called app():
 
@@ -126,10 +126,10 @@ else:
     sentinel_S = Sentinel2Collection(start_date, end_date, tile_S, 100, 30)
     sentinel = sentinel_N.CollectionStitch(sentinel_S)
 
-ls_dates = sorted(landsat.dates)
+ls_dates = sorted(landsat.dates_list)
 ls_date_value = ee.Date(ls_dates[-1])
 
-sn_dates = sorted(sentinel.dates)
+sn_dates = sorted(sentinel.dates_list)
 ls_date_value = ee.Date(sn_dates[-1])
 #Link for sn tile explorer https://eatlas.org.au/data/uuid/f7468d15-12be-4e3f-a246-b2882a324f59
 
